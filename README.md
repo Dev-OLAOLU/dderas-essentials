@@ -21,8 +21,10 @@ Google / X sign-in is for the Grok preview only. Do not rely on those buttons on
 
 ## Deploy (GitHub → Vercel)
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Dev-OLAOLU/dderas-essentials)
+
 1. This repo is the source of truth.
-2. Import it in Vercel (Framework Prefab: leave auto, or set Build Command `npm run build`).
+2. Import it in Vercel with the button above, or from [vercel.com/new](https://vercel.com/new) → GitHub → `dderas-essentials`.
 3. Set these **environment variables** (Production + Preview):
 
 | Variable | Why |
