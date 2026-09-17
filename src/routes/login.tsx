@@ -46,7 +46,6 @@ function Login() {
   if (user) return <Navigate to="/studio" />;
 
   const seatsOpen = gate?.open ?? false;
-  const filled = gate?.filled ?? 0;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -55,7 +54,7 @@ function Login() {
     try {
       if (mode === "up") {
         if (!seatsOpen) {
-          throw new Error("Both ambassador seats are taken.");
+          throw new Error("New accounts are closed. Sign in with an existing profile.");
         }
         const { error: signUpError } = await authClient.signUp.email({
           name: name.trim() || "Ambassador",
@@ -84,16 +83,8 @@ function Login() {
             <span className="text-xs uppercase tracking-[0.16em] text-muted">Ambassador access</span>
           </span>
         </Link>
-        <h1 className="font-display text-3xl tracking-tight">Two seats. No more.</h1>
-        <p className="mt-2 text-sm text-muted">
-          Studio login is locked to {AMBASSADOR_SEATS} ambassador profiles associated with the
-          business. Anyone else is refused at the door.
-        </p>
-        <p className="mt-3 text-xs uppercase tracking-[0.16em] text-subtle">
-          {gate
-            ? `${filled} of ${AMBASSADOR_SEATS} seats claimed`
-            : "Checking seats…"}
-        </p>
+        <h1 className="font-display text-3xl tracking-tight">Sign in</h1>
+        <p className="mt-2 text-sm text-muted">Use your studio email and password.</p>
 
         {authEnabled ? (
           <div className="mt-8 grid gap-3">
@@ -138,7 +129,7 @@ function Login() {
               </Field>
               {error ? <p className="text-sm text-danger">{error}</p> : null}
               <Button type="submit" variant="secondary" disabled={busy}>
-                {busy ? "Please wait…" : mode === "up" ? "Claim ambassador seat" : "Sign in"}
+                {busy ? "Please wait…" : mode === "up" ? "Create account" : "Sign in"}
               </Button>
             </form>
             {seatsOpen ? (
@@ -150,13 +141,9 @@ function Login() {
                   setError(null);
                 }}
               >
-                {mode === "in" ? "First time? Claim a seat" : "Already have a seat? Sign in"}
+                {mode === "in" ? "Need an account? Create one" : "Already have an account? Sign in"}
               </button>
-            ) : (
-              <p className="text-sm text-muted">
-                Both seats are taken. Sign in with an existing ambassador profile only.
-              </p>
-            )}
+            ) : null}
           </div>
         ) : (
           <p className="mt-6 text-sm text-muted">Sign-in is disabled.</p>
