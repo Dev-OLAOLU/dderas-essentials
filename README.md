@@ -4,12 +4,21 @@ Home-visit massage booking for **D-Dera's Essentials** (Lagos). Clients pick a s
 
 **Live source:** [github.com/Dev-OLAOLU/dderas-essentials](https://github.com/Dev-OLAOLU/dderas-essentials)
 
+## Operations loop
+
+1. Client (phone or laptop) builds a session and sends the intake.
+2. The booking is stored on the Studio desk and emailed to Chidera (`chideraal29@gmail.com`) plus the second administrator inbox.
+3. Chidera sets transport, then **Accept & send quote**.
+4. The client quote page updates live. If they left an email, they get the service + transport amounts. WhatsApp still carries the same quote.
+5. The client chooses **pay complete visit** or **pay service + transport**. Studio is emailed that choice. Transfer is confirmed on WhatsApp.
+
 ## What ships
 
 - Public site + session builder and 4-step intake
 - Optional client photos (entrance / deposit)
 - Studio dashboard (ambassador sign-in)
 - Booking photos, version history, and vault snapshots
+- Quote page with payment choice
 - WhatsApp confirmation links
 - Postgres (Neon in production)
 
@@ -36,6 +45,7 @@ Google / X sign-in is for the Grok preview only. Do not rely on those buttons on
 
 4. Deploy. The first build applies SQL in `migrations/` when `DATABASE_URL` is set.
 5. Open `/login`, claim the first ambassador seat, then book a test session from `/book`.
+6. Confirm the first FormSubmit message in Chidera’s inbox (and the second admin inbox) so booking emails start arriving.
 
 ### Neon
 

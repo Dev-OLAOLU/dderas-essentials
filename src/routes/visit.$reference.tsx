@@ -20,37 +20,56 @@ import { cn, formatDisplayDate, formatTimeLabel, whatsappHref } from "@/lib/util
 type VisitQuote = Awaited<ReturnType<typeof getPublicVisit>>;
 
 export const Route = createFileRoute("/visit/$reference")({
-  validateSearch: (search: Record<string, unknown>): { k: string } => ({
+  validateSearch: (search: Record<string, unknown>): { k: string; fresh?: string } => ({
     k: typeof search.k === "string" ? search.k : "",
+    fresh: typeof search.fresh === "string" ? search.fresh : undefined,
   }),
   component: VisitQuotePage,
 });
 
 function VisitQuotePage() {
   const { reference } = Route.useParams();
-  const { k } = Route.useSearch();
+  const { k, fresh } = Route.useSearch();
   const [visit, setVisit] = useState<VisitQuote | null | undefined>(undefined);
   const [picked, setPicked] = useState<PaymentChoice | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    if (!k) {
-      setVisit(null);
-      return;
-    }
-    getPublicVisit({ data: { reference, token: k } })
-      .then((row) => {
-        if (!cancelled) {
-          setVisit(row);
-          setPicked(row.paymentChoice);
+    let timer: number | undefined;
+
+    async function load() {
+      if (!k) {
+        setVisit(null);
+        return;
+      }
+      try {
+        const row = await getPublicVisit({ data: { reference, token: k } });
+        if (cancelled) return;
+        setVisit((prev) => {
+          if (prev && !prev.quoted && row.quoted) {
+            toast.success("Your quote is ready");
+          }
+          return row;
+        });
+        setPicked((current) => current ?? row.paymentChoice);
+        if (row.quoted && timer) {
+          window.clearInterval(timer);
+          timer = undefined;
         }
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setVisit(null);
-      });
+      }
+    }
+
+    void load();
+    timer = window.setInterval(() => {
+      void load();
+    }, 7000);
+
     return () => {
       cancelled = true;
+      if (timer) window.clearInterval(timer);
     };
   }, [reference, k]);
 
@@ -84,6 +103,7 @@ function VisitQuotePage() {
   const waiting = !visit.quoted;
   const locked = Boolean(chosen);
   const quote = visit;
+  const justIn = fresh === "1" && waiting;
 
   async function confirm() {
     if (!picked) {
@@ -94,7 +114,7 @@ function VisitQuotePage() {
     try {
       await choosePayment({ data: { reference: quote.reference, token: k, choice: picked } });
       setVisit({ ...quote, paymentChoice: picked, status: "confirmed" });
-      toast.success("Choice saved");
+      toast.success("Choice saved — finish on WhatsApp");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save that choice");
     } finally {
@@ -125,14 +145,20 @@ function VisitQuotePage() {
           </span>
         </Link>
 
+        {justIn ? (
+          <p className="mt-8 rounded-xl bg-mint px-4 py-3 text-sm text-ink">
+            Request received. D-Dera has it on the desk. Keep this page — your quote appears here.
+          </p>
+        ) : null}
+
         <h1 className="mt-8 font-display text-4xl tracking-tight">
           {waiting ? `Hang tight, ${visit.firstName}.` : `Your quote, ${visit.firstName}.`}
         </h1>
         <p className="mt-3 text-muted">
           {waiting
-            ? "D-Dera has your request. She’ll add transport and send this page live for you to choose how to pay."
+            ? "D-Dera has your request. She’ll add transport, then you choose how to pay — complete visit, or service + fare."
             : locked
-              ? "Your payment choice is with the studio. Finish on WhatsApp."
+              ? "Your payment choice is with the studio. Finish the transfer on WhatsApp."
               : "Choose how you want to pay. D-Dera confirms the transfer on WhatsApp."}
         </p>
 
@@ -164,8 +190,9 @@ function VisitQuotePage() {
         </section>
 
         {waiting ? (
-          <p className="mt-6 text-sm text-muted">
-            Bookmark this page. When the fare is in, both payment options appear here.
+          <p className="mt-6 flex items-center gap-2 text-sm text-muted">
+            <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+            Waiting for D-Dera to set transport. This page updates on its own.
           </p>
         ) : (
           <div className="mt-6 grid gap-3">
@@ -179,7 +206,7 @@ function VisitQuotePage() {
                   disabled={locked}
                   onClick={() => setPicked(option.id)}
                   className={cn(
-                    "rounded-xl border p-4 text-left",
+                    "min-h-11 rounded-xl border p-4 text-left",
                     on ? "border-ink bg-ink text-primary-fg" : "border-border bg-surface hover:bg-surface-2",
                     locked && !on ? "opacity-50" : "",
                   )}

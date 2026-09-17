@@ -216,8 +216,9 @@ export function OpsCycle() {
         <h3 className="mt-1 font-display text-2xl tracking-tight">Booking alerts</h3>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Every new intake is saved on this desk and emailed to Chidera
-          ({STUDIO.email}). Add a second inbox for the other administrator. Confirm the first
-          FormSubmit message in each inbox — after that, bookings arrive as a table.
+          ({STUDIO.email}). When she sends a quote, the client is emailed too if they left an
+          address. Add a second inbox for the other administrator. Confirm the first FormSubmit
+          message in each inbox — after that, bookings arrive as a table.
         </p>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
@@ -243,7 +244,7 @@ export function OpsCycle() {
         <p className="mt-3 text-xs text-subtle">
           {savedEmail
             ? `Currently forwarding to ${savedEmail}.`
-            : "No inbox yet — add one before operations commence."}
+            : "Chidera is always copied. Add the second administrator before operations commence."}
         </p>
       </article>
     </section>

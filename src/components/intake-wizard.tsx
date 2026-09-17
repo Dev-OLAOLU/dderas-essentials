@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, Navigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Check, Home, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { BodyMap } from "@/components/body-map";
@@ -18,7 +18,6 @@ import {
   CORE_SERVICES,
   EXTRAS,
   PRESSURE_OPTIONS,
-  STUDIO,
   TIME_SLOTS,
   durationsFor,
   emptyDraft,
@@ -205,7 +204,12 @@ export function IntakeWizard({
     setSubmitting(true);
     try {
       const parsed = intakeInputSchema.parse(draft);
-      const result = await submitIntake({ data: parsed });
+      const result = await submitIntake({
+        data: {
+          ...parsed,
+          origin: typeof window !== "undefined" ? window.location.origin : "",
+        },
+      });
       if (photos.length) {
         try {
           for (const photo of photos) {
@@ -244,44 +248,11 @@ export function IntakeWizard({
 
   if (done) {
     return (
-      <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center px-5 py-12 text-center">
-        <div className="mx-auto mb-6 grid size-16 place-items-center rounded-full bg-primary text-primary-fg">
-          <Check className="size-7" strokeWidth={2.2} />
-        </div>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-          Booking received
-        </p>
-        <h1 className="mt-3 font-display text-4xl tracking-tight text-ink">
-          You’re on the list.
-        </h1>
-        <p className="mt-4 text-muted">
-          D-Dera has your request. She’ll confirm transport, then you’ll choose whether to pay the complete visit or just service + fare.
-        </p>
-        <p className="mt-8 font-display text-3xl tracking-tight text-ink">{done.reference}</p>
-        <p className="mt-2 text-sm text-muted">
-          Session total {naira(done.total)}
-          {done.total > 0 ? " · transport confirmed separately" : ""}
-        </p>
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button asChild variant="secondary">
-            <Link to="/visit/$reference" params={{ reference: done.reference }} search={{ k: done.token }}>
-              Open your quote page
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <a
-              href={`https://wa.me/${STUDIO.whatsappE164}?text=${encodeURIComponent(`Hi D-Dera, I just submitted intake ${done.reference}.`)}`}
-            >
-              Message on WhatsApp
-            </a>
-          </Button>
-        </div>
-        <div className="mt-4">
-          <Button asChild variant="ghost">
-            <Link to="/">Back home</Link>
-          </Button>
-        </div>
-      </div>
+      <Navigate
+        to="/visit/$reference"
+        params={{ reference: done.reference }}
+        search={{ k: done.token, fresh: "1" }}
+      />
     );
   }
 
@@ -659,7 +630,7 @@ function YouStep({
       </div>
       <Field
         label="Email for your quote"
-        hint="Optional — so we can reach you besides WhatsApp"
+        hint="We’ll send service and transport here when D-Dera accepts. WhatsApp still works without it."
         error={errors.clientEmail}
       >
         <Input

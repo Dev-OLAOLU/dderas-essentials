@@ -147,11 +147,20 @@ function StudioDetailPage() {
     setOnboarding(true);
     try {
       const next = await acceptAndOnboard({
-        data: { id: booking.id, transportFee: transportNumber, notes },
+        data: {
+          id: booking.id,
+          transportFee: transportNumber,
+          notes,
+          origin: typeof window !== "undefined" ? window.location.origin : "",
+        },
       });
       setRecord(next);
       setHistoryTick((value) => value + 1);
-      toast.success("Quote is ready — send it on WhatsApp");
+      toast.success(
+        next.clientEmail
+          ? "Quote is live — emailed, and ready to WhatsApp"
+          : "Quote is live — send it on WhatsApp",
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not send the quote");
     } finally {
@@ -280,10 +289,20 @@ function StudioDetailPage() {
         <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-muted">
           Accept & onboard
         </h2>
-        <p className="text-sm text-muted">
-          Set the transport fare, then send the quote. The client chooses pay-in-full or service +
-          fare on their page.
-        </p>
+        {booking.quoteSentAt || booking.status === "quoted" || booking.status === "confirmed" ? (
+          <p className="rounded-lg bg-mint px-4 py-3 text-sm text-ink">
+            Quote is live.{" "}
+            {booking.clientEmail
+              ? `Feedback sent to ${booking.clientEmail}. `
+              : "No client email — WhatsApp the quote. "}
+            They choose complete visit or service + fare on their page.
+          </p>
+        ) : (
+          <p className="text-sm text-muted">
+            Set the transport fare, then send the quote. The client is emailed (if they left an
+            address) and can choose pay-in-full or service + fare on their page.
+          </p>
+        )}
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Transportation fee (₦)">
             <Input

@@ -8,13 +8,12 @@ import {
   intakeInputSchema,
   amountDue,
   serviceFee as calcServiceFee,
-  type IntakeInput,
   type IntakeRecord,
   type IntakeStatus,
   type IntakeSummary,
   type PaymentChoice,
 } from "@/lib/intake-schema";
-import { assertAmbassador, sendBookingNotification } from "@/lib/studio";
+import { assertAmbassador, sendBookingNotification, sendPaymentChoiceNotice, sendQuoteFeedback } from "@/lib/studio";
 import { recordRevisionSafe } from "@/lib/vault";
 
 type IntakeRow = {
@@ -131,8 +130,15 @@ function parsePaymentChoice(value: string): PaymentChoice {
 }
 
 export const submitIntake = createServerFn({ method: "POST" })
-  .validator((input: unknown) => intakeInputSchema.parse(input))
-  .handler(async ({ data }: { data: IntakeInput }) => {
+  .validator((input: unknown) => {
+    const origin =
+      input && typeof input === "object" && typeof (input as { origin?: unknown }).origin === "string"
+        ? (input as { origin: string }).origin
+        : "";
+    return { ...intakeInputSchema.parse(input), origin };
+  })
+  .handler(async ({ data: payload }) => {
+    const { origin, ...data } = payload;
     const sql = await getSql();
     let reference = makeReference();
     for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -147,6 +153,7 @@ export const submitIntake = createServerFn({ method: "POST" })
     const extrasFee = calcExtrasFee(data.extras);
     const transportFee = data.transportFee;
     const grandTotal = calcGrandTotal(serviceFee, extrasFee, transportFee);
+    const clientToken = makeClientToken();
 
     const inserted = await sql<{ id: number; reference: string; client_token: string }>`
       insert into intakes (
@@ -157,7 +164,7 @@ export const submitIntake = createServerFn({ method: "POST" })
         pressure, consent_name, status
       ) values (
         ${reference},
-        ${data.fullName}, ${data.phone}, ${data.clientEmail}, ${makeClientToken()},
+        ${data.fullName}, ${data.phone}, ${data.clientEmail}, ${clientToken},
         ${data.addressExact}, ${data.serviceArea},
         ${data.preferredDate}, ${data.preferredTime}, ${data.serviceType},
         ${data.durationMinutes}, ${JSON.stringify(data.extras)},
@@ -179,6 +186,8 @@ export const submitIntake = createServerFn({ method: "POST" })
       fullName: data.fullName,
       phone: data.phone,
       clientEmail: data.clientEmail,
+      clientToken: row.client_token,
+      origin,
       addressExact: data.addressExact,
       serviceArea: data.serviceArea,
       preferredDate: data.preferredDate,
@@ -314,6 +323,7 @@ export const acceptAndOnboard = createServerFn({ method: "POST" })
         id: z.number().int().positive(),
         transportFee: z.number().int().min(0).max(1_000_000),
         notes: z.string().max(4000).default(""),
+        origin: z.string().max(240).optional(),
       })
       .parse(input),
   )
@@ -349,7 +359,24 @@ export const acceptAndOnboard = createServerFn({ method: "POST" })
     `;
     const next = updated[0];
     if (!next) throw new Error("Could not send the quote.");
-    return toRecord(next);
+    const record = toRecord(next);
+    void sendQuoteFeedback({
+      reference: record.reference,
+      fullName: record.fullName,
+      phone: record.phone,
+      clientEmail: record.clientEmail,
+      clientToken: record.clientToken,
+      origin: data.origin,
+      preferredDate: record.preferredDate,
+      preferredTime: record.preferredTime,
+      serviceType: record.serviceType,
+      durationMinutes: record.durationMinutes,
+      extras: record.extras,
+      serviceFee: record.serviceFee,
+      extrasFee: record.extrasFee,
+      transportFee: record.transportFee,
+    });
+    return record;
   });
 
 export const getPublicVisit = createServerFn({ method: "GET" })
@@ -425,6 +452,16 @@ export const choosePayment = createServerFn({ method: "POST" })
           status = ${row.status === "completed" ? row.status : "confirmed"}
       where id = ${row.id}
     `;
+    void sendPaymentChoiceNotice({
+      reference: row.reference,
+      fullName: row.full_name,
+      phone: row.phone,
+      choice,
+      due,
+      serviceFee: fees.serviceFee,
+      extrasFee: fees.extrasFee,
+      transportFee: fees.transportFee,
+    });
     return { ok: true as const, choice, due };
   });
 

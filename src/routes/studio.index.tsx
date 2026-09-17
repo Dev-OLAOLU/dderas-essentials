@@ -5,6 +5,7 @@ import { listIntakes } from "@/lib/intakes";
 import { ensureAmbassador, type AmbassadorPublic } from "@/lib/studio";
 import {
   naira,
+  paymentChoiceLabel,
   serviceLabel,
   statusLabel,
   type IntakeStatus,
@@ -193,6 +194,9 @@ function StudioIndex() {
                       {statusLabel(row.status)}
                     </Badge>
                     <p className="mt-2 text-sm tabular-nums font-medium">{naira(row.grandTotal)}</p>
+                    {row.paymentChoice ? (
+                      <p className="mt-1 text-xs text-muted">{paymentChoiceLabel(row.paymentChoice)}</p>
+                    ) : null}
                     <p className="text-xs text-subtle">{row.reference}</p>
                   </div>
                 </div>

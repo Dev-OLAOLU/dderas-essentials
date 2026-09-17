@@ -27,7 +27,7 @@ const STEPS = [
   {
     n: "3",
     title: "D-Dera accepts",
-    body: "She sets transport and sends your quote — WhatsApp and your quote page.",
+    body: "She sets transport. Your quote page updates, and we email you if you left an address.",
   },
   {
     n: "4",

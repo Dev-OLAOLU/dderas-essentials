@@ -14,7 +14,17 @@ import {
   todayInStudio,
   type DayPoint,
 } from "@/lib/cycle";
-import { extraLabel, serviceLabel, STUDIO } from "@/lib/intake-schema";
+import { publicSiteOrigin, quotePageUrl } from "@/lib/site-url";
+import {
+  amountDue,
+  extraLabel,
+  naira,
+  paymentChoiceLabel,
+  serviceLabel,
+  STUDIO,
+  type PaymentChoice,
+} from "@/lib/intake-schema";
+import { formatDisplayDate, formatTimeLabel } from "@/lib/utils";
 
 export class ForbiddenError extends Error {
   readonly status = 403;
@@ -146,6 +156,10 @@ const emailSchema = z
   .max(160)
   .refine((value) => value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "Enter a valid email");
 
+function isStudioInbox(email: string): boolean {
+  return email.trim().toLowerCase() === STUDIO.email.toLowerCase();
+}
+
 export const getNotifyEmail = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
@@ -154,7 +168,8 @@ export const getNotifyEmail = createServerFn({ method: "GET" })
     const rows = await sql<{ notify_email: string }>`
       select notify_email from studio_settings where id = 1 limit 1
     `;
-    return { email: rows[0]?.notify_email ?? "" };
+    const stored = (rows[0]?.notify_email ?? "").trim();
+    return { email: isStudioInbox(stored) ? "" : stored };
   });
 
 export const updateNotifyEmail = createServerFn({ method: "POST" })
@@ -163,15 +178,16 @@ export const updateNotifyEmail = createServerFn({ method: "POST" })
   .handler(async ({ context, data: email }) => {
     await assertAmbassador(context.userId);
     const sql = await getSql();
+    const stored = isStudioInbox(email) ? "" : email;
     await sql`
       insert into studio_settings (id, notify_email, updated_at, updated_by)
-      values (1, ${email}, now(), ${context.userId})
+      values (1, ${stored}, now(), ${context.userId})
       on conflict (id) do update
-        set notify_email = ${email},
+        set notify_email = ${stored},
             updated_at = now(),
             updated_by = ${context.userId}
     `;
-    return { email };
+    return { email: stored };
   });
 
 export async function readNotifyEmail(): Promise<string> {
@@ -216,11 +232,34 @@ async function postFormSubmit(email: string, body: Record<string, string>): Prom
   }
 }
 
+async function notifyAdmins(body: Record<string, string>, autoresponse?: string): Promise<void> {
+  const inboxes = await listNotifyInboxes();
+  if (inboxes.length === 0) return;
+  await Promise.all(
+    inboxes.map((email, index) =>
+      postFormSubmit(email, {
+        ...body,
+        ...(index === 0 && autoresponse ? { _autoresponse: autoresponse } : {}),
+      }),
+    ),
+  );
+}
+
+function firstNameOf(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] || fullName;
+}
+
+function extrasLine(extras: string[]): string {
+  return extras.length > 0 ? extras.map(extraLabel).join(", ") : "None";
+}
+
 export async function sendBookingNotification(payload: {
   reference: string;
   fullName: string;
   phone: string;
   clientEmail?: string;
+  clientToken: string;
+  origin?: string;
   addressExact: string;
   serviceArea: string;
   preferredDate: string;
@@ -234,34 +273,135 @@ export async function sendBookingNotification(payload: {
   allergies: string;
   pressure: string;
 }): Promise<void> {
-  const inboxes = await listNotifyInboxes();
-  if (inboxes.length === 0) return;
+  const origin = publicSiteOrigin(payload.origin);
+  const quote = quotePageUrl(origin, payload.reference, payload.clientToken);
+  const clientEmail = (payload.clientEmail ?? "").trim();
+  const extras = extrasLine(payload.extras);
+  const firstName = firstNameOf(payload.fullName);
 
-  const extras =
-    payload.extras.length > 0 ? payload.extras.map(extraLabel).join(", ") : "None";
-  const body = {
-    _subject: `New D-Dera booking ${payload.reference}`,
+  const autoresponse = clientEmail
+    ? [
+        `Hi ${firstName}, D-Dera's Essentials has your request ${payload.reference}.`,
+        `Stay on your quote page. When transport is set, you choose how to pay.`,
+        quote ? `Quote page: ${quote}` : "Use the quote page from your booking confirmation.",
+        `WhatsApp D-Dera: https://wa.me/${STUDIO.whatsappE164}`,
+      ].join("\n")
+    : undefined;
+
+  await notifyAdmins(
+    {
+      _subject: `New D-Dera booking ${payload.reference}`,
+      _template: "table",
+      _captcha: "false",
+      _replyto: clientEmail || STUDIO.email,
+      reference: payload.reference,
+      name: payload.fullName,
+      phone: payload.phone,
+      email: clientEmail || "Not given",
+      area: payload.serviceArea,
+      address: payload.addressExact,
+      date: payload.preferredDate,
+      time: payload.preferredTime,
+      service: serviceLabel(payload.serviceType),
+      duration: `${payload.durationMinutes} mins`,
+      extras,
+      session_total: naira(payload.grandTotal),
+      injuries: payload.injuriesFlag ? payload.injuriesDetail || "Yes" : "No",
+      allergies: payload.allergies || "None noted",
+      pressure: payload.pressure,
+      quote_page: quote || "In Studio",
+      next_step: "Open Studio, set transport, then Accept & send quote.",
+    },
+    autoresponse,
+  );
+}
+
+export async function sendQuoteFeedback(payload: {
+  reference: string;
+  fullName: string;
+  phone: string;
+  clientEmail: string;
+  clientToken: string;
+  origin?: string;
+  preferredDate: string;
+  preferredTime: string;
+  serviceType: string;
+  durationMinutes: number;
+  extras: string[];
+  serviceFee: number;
+  extrasFee: number;
+  transportFee: number;
+}): Promise<void> {
+  const origin = publicSiteOrigin(payload.origin);
+  const quote = quotePageUrl(origin, payload.reference, payload.clientToken);
+  const session = payload.serviceFee + payload.extrasFee;
+  const dueFull = amountDue("full", payload);
+  const dueFare = amountDue("service_fare", payload);
+  const firstName = firstNameOf(payload.fullName);
+  const when = `${formatDisplayDate(payload.preferredDate)} · ${formatTimeLabel(payload.preferredTime)}`;
+  const clientEmail = payload.clientEmail.trim();
+
+  const autoresponse = clientEmail
+    ? [
+        `Hi ${firstName}, D-Dera accepted your booking ${payload.reference}.`,
+        `${serviceLabel(payload.serviceType)} · ${payload.durationMinutes} mins · ${when}`,
+        `Session ${naira(session)}. Transport ${naira(payload.transportFee)}.`,
+        `Pay complete visit ${naira(dueFull)}, or service + transport ${naira(dueFare)}.`,
+        quote ? `Choose here: ${quote}` : "Open your quote page from the booking confirmation.",
+        `WhatsApp: https://wa.me/${STUDIO.whatsappE164}`,
+      ].join("\n")
+    : undefined;
+
+  await notifyAdmins(
+    {
+      _subject: `Quote sent · ${payload.reference}`,
+      _template: "table",
+      _captcha: "false",
+      _replyto: clientEmail || STUDIO.email,
+      reference: payload.reference,
+      name: payload.fullName,
+      phone: payload.phone,
+      email: clientEmail || "Not given",
+      service: serviceLabel(payload.serviceType),
+      when,
+      session: naira(session),
+      extras: extrasLine(payload.extras),
+      transport: naira(payload.transportFee),
+      pay_complete: naira(dueFull),
+      pay_service_fare: naira(dueFare),
+      quote_page: quote || "In Studio",
+      next_step: "Client chooses pay-in-full or service + fare on their quote page.",
+    },
+    autoresponse,
+  );
+}
+
+export async function sendPaymentChoiceNotice(payload: {
+  reference: string;
+  fullName: string;
+  phone: string;
+  choice: PaymentChoice;
+  due: number;
+  serviceFee: number;
+  extrasFee: number;
+  transportFee: number;
+}): Promise<void> {
+  await notifyAdmins({
+    _subject: `Payment choice · ${payload.reference}`,
     _template: "table",
     _captcha: "false",
+    _replyto: STUDIO.email,
     reference: payload.reference,
     name: payload.fullName,
     phone: payload.phone,
-    email: payload.clientEmail || "Not given",
-    area: payload.serviceArea,
-    address: payload.addressExact,
-    date: payload.preferredDate,
-    time: payload.preferredTime,
-    service: serviceLabel(payload.serviceType),
-    duration: `${payload.durationMinutes} mins`,
-    extras,
-    session_total: String(payload.grandTotal),
-    injuries: payload.injuriesFlag ? payload.injuriesDetail || "Yes" : "No",
-    allergies: payload.allergies || "None noted",
-    pressure: payload.pressure,
-    next_step: "Open Studio, set transport, then Accept & send quote.",
-  };
-
-  await Promise.all(inboxes.map((email) => postFormSubmit(email, body)));
+    email: "On desk",
+    choice: paymentChoiceLabel(payload.choice),
+    amount_due: naira(payload.due),
+    session: naira(payload.serviceFee),
+    extras: naira(payload.extrasFee),
+    transport: naira(payload.transportFee),
+    next_step: "Confirm the transfer on WhatsApp, then mark payment received.",
+  });
 }
 
 type OpsRow = {
