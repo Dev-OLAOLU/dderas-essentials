@@ -119,7 +119,7 @@ export function IntakeWizard({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [photos, setPhotos] = useState<PendingFile[]>([]);
-  const [done, setDone] = useState<{ reference: string; total: number } | null>(null);
+  const [done, setDone] = useState<{ reference: string; total: number; token: string } | null>(null);
 
   useEffect(() => {
     setDraft(applyPreset(loadDraft(), presetFromLocation(preset)));
@@ -161,6 +161,7 @@ export function IntakeWizard({
     [
       "fullName",
       "phone",
+      "clientEmail",
       "injuriesFlag",
       "injuriesDetail",
       "allergies",
@@ -229,7 +230,7 @@ export function IntakeWizard({
       }
       clearDraft();
       setPhotos([]);
-      setDone({ reference: result.reference, total: result.grandTotal });
+      setDone({ reference: result.reference, total: result.grandTotal, token: result.clientToken });
       toast.success("Booking received");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not send your form";
@@ -254,8 +255,7 @@ export function IntakeWizard({
           You’re on the list.
         </h1>
         <p className="mt-4 text-muted">
-          D-Dera will confirm your home visit and transport once your intake is reviewed.
-          Keep this reference handy.
+          D-Dera has your request. She’ll confirm transport, then you’ll choose whether to pay the complete visit or just service + fare.
         </p>
         <p className="mt-8 font-display text-3xl tracking-tight text-ink">{done.reference}</p>
         <p className="mt-2 text-sm text-muted">
@@ -264,13 +264,20 @@ export function IntakeWizard({
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button asChild variant="secondary">
+            <Link to="/visit/$reference" params={{ reference: done.reference }} search={{ k: done.token }}>
+              Open your quote page
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
             <a
               href={`https://wa.me/${STUDIO.whatsappE164}?text=${encodeURIComponent(`Hi D-Dera, I just submitted intake ${done.reference}.`)}`}
             >
               Message on WhatsApp
             </a>
           </Button>
-          <Button asChild variant="outline">
+        </div>
+        <div className="mt-4">
+          <Button asChild variant="ghost">
             <Link to="/">Back home</Link>
           </Button>
         </div>
@@ -650,6 +657,19 @@ function YouStep({
           />
         </Field>
       </div>
+      <Field
+        label="Email for your quote"
+        hint="Optional — so we can reach you besides WhatsApp"
+        error={errors.clientEmail}
+      >
+        <Input
+          type="email"
+          autoComplete="email"
+          placeholder="you@email.com"
+          value={draft.clientEmail}
+          onChange={(event) => onChange({ clientEmail: event.target.value })}
+        />
+      </Field>
 
       <section className="grid gap-4">
         <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-muted">

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, Copy, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getIntake, updateBookingAdmin, updateIntakeStatus } from "@/lib/intakes";
+import { acceptAndOnboard, getIntake, updateBookingAdmin, updateIntakeStatus } from "@/lib/intakes";
 import { listRevisions, restoreRevision, type RevisionSummary } from "@/lib/vault";
 import {
   EXTRAS,
   STATUSES,
   naira,
+  paymentChoiceLabel,
   pressureLabel,
   serviceLabel,
   statusLabel,
@@ -32,6 +33,7 @@ function StudioDetailPage() {
   const [transport, setTransport] = useState("0");
   const [deposit, setDeposit] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [onboarding, setOnboarding] = useState(false);
   const [historyTick, setHistoryTick] = useState(0);
 
   useEffect(() => {
@@ -121,6 +123,51 @@ function StudioDetailPage() {
     booking.phone,
     `Hi ${booking.fullName.split(" ")[0]}, this is D-Dera confirming your ${serviceLabel(booking.serviceType)} on ${formatDisplayDate(booking.preferredDate)}.`,
   );
+
+  const quotePath = booking.clientToken
+    ? `/visit/${booking.reference}?k=${booking.clientToken}`
+    : "";
+  const quoteUrl =
+    typeof window !== "undefined" && quotePath ? `${window.location.origin}${quotePath}` : quotePath;
+
+  const quoteWa = whatsappHref(
+    booking.phone,
+    [
+      `Hi ${booking.fullName.split(" ")[0]}, this is D-Dera.`,
+      `Your ${serviceLabel(booking.serviceType)} on ${formatDisplayDate(booking.preferredDate)} is accepted.`,
+      `Session ${naira(sessionTotal)}. Transport ${naira(transportNumber)}.`,
+      `Pay complete visit ${naira(previewTotal)}, or service + transport ${naira(booking.serviceFee + transportNumber)}.`,
+      quoteUrl ? `Choose here: ${quoteUrl}` : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  async function onboard() {
+    setOnboarding(true);
+    try {
+      const next = await acceptAndOnboard({
+        data: { id: booking.id, transportFee: transportNumber, notes },
+      });
+      setRecord(next);
+      setHistoryTick((value) => value + 1);
+      toast.success("Quote is ready — send it on WhatsApp");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send the quote");
+    } finally {
+      setOnboarding(false);
+    }
+  }
+
+  async function copyQuoteLink() {
+    if (!quoteUrl) return;
+    try {
+      await navigator.clipboard.writeText(quoteUrl);
+      toast.success("Quote link copied");
+    } catch {
+      toast.error("Could not copy the link");
+    }
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8">
@@ -222,6 +269,8 @@ function StudioDetailPage() {
           />
           <Row label="Pressure" value={pressureLabel(booking.pressure)} />
           <Row label="Signed as" value={booking.consentName} />
+          <Row label="Email" value={booking.clientEmail || "Not given"} />
+          <Row label="Payment choice" value={paymentChoiceLabel(booking.paymentChoice)} />
         </dl>
       </section>
 
@@ -229,8 +278,12 @@ function StudioDetailPage() {
 
       <section className="mt-8 mb-12 grid gap-5 rounded-xl border border-border bg-surface p-5">
         <h2 className="text-sm font-medium uppercase tracking-[0.16em] text-muted">
-          Confirm visit
+          Accept & onboard
         </h2>
+        <p className="text-sm text-muted">
+          Set the transport fare, then send the quote. The client chooses pay-in-full or service +
+          fare on their page.
+        </p>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Transportation fee (₦)">
             <Input
@@ -248,12 +301,12 @@ function StudioDetailPage() {
               checked={deposit}
               onChange={(event) => setDeposit(event.target.checked)}
             />
-            Advance transport deposit received
+            Payment received
           </label>
         </div>
         <p className="text-sm text-muted">
-          Session {naira(sessionTotal)} + transport {naira(transportNumber)} ={" "}
-          <span className="font-medium text-ink">{naira(previewTotal)}</span>
+          Complete visit {naira(previewTotal)} · service + transport{" "}
+          {naira(booking.serviceFee + transportNumber)}
         </p>
         <Field label="Private notes">
           <Textarea
@@ -262,15 +315,23 @@ function StudioDetailPage() {
             onChange={(event) => setNotes(event.target.value)}
           />
         </Field>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button type="button" variant="secondary" disabled={saving} onClick={() => void saveAdmin()}>
-            {saving ? "Saving…" : "Save confirmation"}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <Button type="button" variant="secondary" disabled={onboarding} onClick={() => void onboard()}>
+            {onboarding ? "Sending…" : "Accept & send quote"}
+          </Button>
+          <Button type="button" variant="outline" disabled={saving} onClick={() => void saveAdmin()}>
+            {saving ? "Saving…" : "Save notes"}
           </Button>
           <Button asChild variant="outline">
-            <a href={clientWa} target="_blank" rel="noreferrer">
+            <a href={booking.status === "quoted" || booking.quoteSentAt ? quoteWa : clientWa} target="_blank" rel="noreferrer">
               <MessageCircle /> WhatsApp client
             </a>
           </Button>
+          {quoteUrl ? (
+            <Button type="button" variant="ghost" onClick={() => void copyQuoteLink()}>
+              <Copy /> Copy quote link
+            </Button>
+          ) : null}
         </div>
       </section>
 

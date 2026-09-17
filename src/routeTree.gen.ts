@@ -16,6 +16,7 @@ import { Route as StudioRouteImport } from './routes/studio'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as StudioVaultRouteImport } from './routes/studio.vault'
+import { Route as VisitReferenceRouteImport } from './routes/visit.$reference'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const StudioVaultRoute = StudioVaultRouteImport.update({
   path: '/vault',
   getParentRoute: () => StudioRoute,
 } as any)
+const VisitReferenceRoute = VisitReferenceRouteImport.update({
+  id: '/visit/$reference',
+  path: '/visit/$reference',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/studio': typeof StudioRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/studio/vault': typeof StudioVaultRoute
+  '/visit/$reference': typeof VisitReferenceRoute
   '/studio/': typeof StudioIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/studio/$id': typeof StudioIdRoute
   '/studio/vault': typeof StudioVaultRoute
+  '/visit/$reference': typeof VisitReferenceRoute
   '/studio': typeof StudioIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/studio': typeof StudioRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/studio/vault': typeof StudioVaultRoute
+  '/visit/$reference': typeof VisitReferenceRoute
   '/studio/': typeof StudioIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/studio/$id'
     | '/studio/vault'
+    | '/visit/$reference'
     | '/studio/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/studio/$id'
     | '/studio/vault'
+    | '/visit/$reference'
     | '/studio'
     | '/api/auth/$'
   id:
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/studio/$id'
     | '/studio/vault'
+    | '/visit/$reference'
     | '/studio/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -126,6 +138,7 @@ export interface RootRouteChildren {
   BookRoute: typeof BookRoute
   LoginRoute: typeof LoginRoute
   StudioRoute: typeof StudioRouteWithChildren
+  VisitReferenceRoute: typeof VisitReferenceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioVaultRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/visit/$reference': {
+      id: '/visit/$reference'
+      path: '/visit/$reference'
+      fullPath: '/visit/$reference'
+      preLoaderRoute: typeof VisitReferenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -210,6 +230,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookRoute: BookRoute,
   LoginRoute: LoginRoute,
   StudioRoute: StudioRouteWithChildren,
+  VisitReferenceRoute: VisitReferenceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

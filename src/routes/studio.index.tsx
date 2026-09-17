@@ -130,7 +130,7 @@ function StudioIndex() {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {(["all", "new", "reviewed", "confirmed", "completed"] as const).map((item) => {
+            {(["all", "new", "quoted", "confirmed", "completed"] as const).map((item) => {
               const on = status === item;
               return (
                 <button

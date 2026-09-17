@@ -117,6 +117,7 @@ export const BODY_AREAS = [
 export const STATUSES = [
   { id: "new", label: "New" },
   { id: "reviewed", label: "Reviewed" },
+  { id: "quoted", label: "Quoted" },
   { id: "confirmed", label: "Confirmed" },
   { id: "completed", label: "Completed" },
 ] as const;
@@ -191,6 +192,34 @@ export function statusLabel(id: string): string {
   return STATUSES.find((item) => item.id === id)?.label ?? id;
 }
 
+export const PAYMENT_CHOICES = [
+  {
+    id: "full",
+    label: "Pay complete visit",
+    hint: "Session, extras, and transport — everything due for this visit.",
+  },
+  {
+    id: "service_fare",
+    label: "Pay service + transport",
+    hint: "Lock the visit with the session fee and fare. Extras are settled on the day.",
+  },
+] as const;
+
+export type PaymentChoice = (typeof PAYMENT_CHOICES)[number]["id"];
+
+export function paymentChoiceLabel(id: string | null | undefined): string {
+  if (!id) return "Not chosen yet";
+  return PAYMENT_CHOICES.find((item) => item.id === id)?.label ?? id;
+}
+
+export function amountDue(
+  choice: PaymentChoice,
+  fees: { serviceFee: number; extrasFee: number; transportFee: number },
+): number {
+  if (choice === "full") return fees.serviceFee + fees.extrasFee + fees.transportFee;
+  return fees.serviceFee + fees.transportFee;
+}
+
 const nonEmpty = (label: string) =>
   z.string().trim().min(1, `${label} is required`).max(200);
 
@@ -198,6 +227,11 @@ export const intakeInputSchema = z
   .object({
     fullName: nonEmpty("Full name").max(120),
     phone: nonEmpty("Phone number").max(40),
+    clientEmail: z
+      .string()
+      .trim()
+      .max(160)
+      .refine((value) => value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "Enter a valid email"),
     addressExact: nonEmpty("Exact address").max(240),
     serviceArea: nonEmpty("Location / service area").max(120),
     preferredDate: z
@@ -271,6 +305,7 @@ export function emptyDraft(): IntakeDraft {
   return {
     fullName: "",
     phone: "",
+    clientEmail: "",
     addressExact: "",
     serviceArea: "",
     preferredDate: "",
@@ -306,11 +341,15 @@ export type IntakeSummary = {
   grandTotal: number;
   status: IntakeStatus;
   depositReceived: boolean;
+  paymentChoice: PaymentChoice | null;
   createdAt: string;
 };
 
 export type IntakeRecord = IntakeSummary & {
   addressExact: string;
+  clientEmail: string;
+  clientToken: string;
+  quoteSentAt: string | null;
   injuriesFlag: boolean;
   injuriesDetail: string;
   allergies: string;

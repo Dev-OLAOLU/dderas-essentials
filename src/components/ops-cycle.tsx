@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { getNotifyEmail, getOpsSnapshot, updateNotifyEmail, type CycleBlock, type OpsSnapshot } from "@/lib/studio";
-import { naira } from "@/lib/intake-schema";
+import { STUDIO, naira } from "@/lib/intake-schema";
 import { cn, formatDisplayDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -213,14 +213,15 @@ export function OpsCycle() {
 
       <article className="rounded-xl border border-border bg-surface p-5">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Booking alerts</p>
-        <h3 className="mt-1 font-display text-2xl tracking-tight">FormSubmit notification</h3>
+        <h3 className="mt-1 font-display text-2xl tracking-tight">Booking alerts</h3>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          Each new client booking is saved here, then forwarded to this inbox through FormSubmit.
-          Confirm the first email FormSubmit sends — after that, every intake arrives as a table.
+          Every new intake is saved on this desk and emailed to Chidera
+          ({STUDIO.email}). Add a second inbox for the other administrator. Confirm the first
+          FormSubmit message in each inbox — after that, bookings arrive as a table.
         </p>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <Field label="Notification email">
+            <Field label="Second administrator email">
               <Input
                 type="email"
                 placeholder="studio@email.com"

@@ -21,13 +21,18 @@ const STEPS = [
   },
   {
     n: "2",
-    title: "Tell us where to come",
-    body: "Address, preferred time, and a short health note.",
+    title: "Send a short intake",
+    body: "Where to come, health notes, and optional photos.",
   },
   {
     n: "3",
-    title: "D-Dera confirms",
-    body: "She messages you on WhatsApp with travel and a start time.",
+    title: "D-Dera accepts",
+    body: "She sets transport and sends your quote — WhatsApp and your quote page.",
+  },
+  {
+    n: "4",
+    title: "Choose how to pay",
+    body: "Complete visit, or service + fare now and extras on the day.",
   },
 ];
 

@@ -14,7 +14,7 @@ import {
   todayInStudio,
   type DayPoint,
 } from "@/lib/cycle";
-import { extraLabel, serviceLabel } from "@/lib/intake-schema";
+import { extraLabel, serviceLabel, STUDIO } from "@/lib/intake-schema";
 
 export class ForbiddenError extends Error {
   readonly status = 403;
@@ -182,48 +182,21 @@ export async function readNotifyEmail(): Promise<string> {
   return (rows[0]?.notify_email ?? "").trim();
 }
 
-export async function sendBookingNotification(payload: {
-  reference: string;
-  fullName: string;
-  phone: string;
-  addressExact: string;
-  serviceArea: string;
-  preferredDate: string;
-  preferredTime: string;
-  serviceType: string;
-  durationMinutes: number;
-  extras: string[];
-  grandTotal: number;
-  injuriesFlag: boolean;
-  injuriesDetail: string;
-  allergies: string;
-  pressure: string;
-}): Promise<void> {
-  const email = await readNotifyEmail();
-  if (!email) return;
-
-  const extras =
-    payload.extras.length > 0 ? payload.extras.map(extraLabel).join(", ") : "None";
-  const body = {
-    _subject: `New D-Dera booking ${payload.reference}`,
-    _template: "table",
-    _captcha: "false",
-    reference: payload.reference,
-    name: payload.fullName,
-    phone: payload.phone,
-    area: payload.serviceArea,
-    address: payload.addressExact,
-    date: payload.preferredDate,
-    time: payload.preferredTime,
-    service: serviceLabel(payload.serviceType),
-    duration: `${payload.durationMinutes} mins`,
-    extras,
-    total: String(payload.grandTotal),
-    injuries: payload.injuriesFlag ? payload.injuriesDetail || "Yes" : "No",
-    allergies: payload.allergies || "None noted",
-    pressure: payload.pressure,
+async function listNotifyInboxes(): Promise<string[]> {
+  const sql = await getSql();
+  const found = new Set<string>();
+  const add = (value: string | null | undefined) => {
+    const email = (value ?? "").trim().toLowerCase();
+    if (email.includes("@")) found.add(email);
   };
+  add(STUDIO.email);
+  add(await readNotifyEmail());
+  const ambassadors = await sql<{ email: string }>`select email from ambassadors`;
+  for (const row of ambassadors) add(row.email);
+  return [...found];
+}
 
+async function postFormSubmit(email: string, body: Record<string, string>): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
@@ -241,6 +214,54 @@ export async function sendBookingNotification(payload: {
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function sendBookingNotification(payload: {
+  reference: string;
+  fullName: string;
+  phone: string;
+  clientEmail?: string;
+  addressExact: string;
+  serviceArea: string;
+  preferredDate: string;
+  preferredTime: string;
+  serviceType: string;
+  durationMinutes: number;
+  extras: string[];
+  grandTotal: number;
+  injuriesFlag: boolean;
+  injuriesDetail: string;
+  allergies: string;
+  pressure: string;
+}): Promise<void> {
+  const inboxes = await listNotifyInboxes();
+  if (inboxes.length === 0) return;
+
+  const extras =
+    payload.extras.length > 0 ? payload.extras.map(extraLabel).join(", ") : "None";
+  const body = {
+    _subject: `New D-Dera booking ${payload.reference}`,
+    _template: "table",
+    _captcha: "false",
+    reference: payload.reference,
+    name: payload.fullName,
+    phone: payload.phone,
+    email: payload.clientEmail || "Not given",
+    area: payload.serviceArea,
+    address: payload.addressExact,
+    date: payload.preferredDate,
+    time: payload.preferredTime,
+    service: serviceLabel(payload.serviceType),
+    duration: `${payload.durationMinutes} mins`,
+    extras,
+    session_total: String(payload.grandTotal),
+    injuries: payload.injuriesFlag ? payload.injuriesDetail || "Yes" : "No",
+    allergies: payload.allergies || "None noted",
+    pressure: payload.pressure,
+    next_step: "Open Studio, set transport, then Accept & send quote.",
+  };
+
+  await Promise.all(inboxes.map((email) => postFormSubmit(email, body)));
 }
 
 type OpsRow = {
