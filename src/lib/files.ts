@@ -103,6 +103,51 @@ export const attachClientFile = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const attachReceiptFile = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z
+      .object({
+        reference: z.string().min(4).max(16),
+        token: z.string().min(8).max(40),
+        filename: z.string().trim().min(1).max(80),
+        mime: z.literal("image/jpeg"),
+        data: z.string().min(32).max(1_800_000),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const bytes = decodeSize(data.data);
+    if (bytes > IMAGE_MAX_BYTES) throw new Error("That photo is too large.");
+    const sql = await getSql();
+    const rows = await sql<{ id: number }>`
+      select id from intakes
+      where reference = ${data.reference} and client_token = ${data.token}
+      limit 1
+    `;
+    const intake = rows[0];
+    if (!intake) throw new Error("Booking not found.");
+    const counted = await sql<{ n: number }>`
+      select count(*)::int as n from intake_files
+      where intake_id = ${intake.id} and kind = ${"receipt"}
+    `;
+    if (Number(counted[0]?.n ?? 0) >= 3) {
+      throw new Error("You can attach up to 3 receipts.");
+    }
+    await sql`
+      insert into intake_files (intake_id, kind, filename, mime, bytes, data, uploaded_by)
+      values (
+        ${intake.id},
+        ${"receipt"},
+        ${data.filename},
+        ${data.mime},
+        ${bytes},
+        ${data.data},
+        ${"client"}
+      )
+    `;
+    return { ok: true as const };
+  });
+
 export const listIntakeFiles = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .validator((id: unknown) => Number(id))
