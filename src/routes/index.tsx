@@ -26,13 +26,13 @@ const STEPS = [
   },
   {
     n: "3",
-    title: "D-Dera accepts",
-    body: "She sets transport. Your quote page updates, and we email you if you left an address.",
+    title: "Confirm on WhatsApp",
+    body: "Your form opens a chat with D-Dera. Transport is agreed there.",
   },
   {
     n: "4",
     title: "Choose how to pay",
-    body: "Complete visit, or service + fare now and extras on the day.",
+    body: "Once transport is set: complete visit, or service + fare now and extras on the day.",
   },
 ];
 
@@ -54,7 +54,7 @@ function HomePage() {
                 at your home.
               </h1>
               <p className="mt-4 max-w-md text-lg text-muted">
-                Pick a therapy, see the price, send a short intake. D-Dera confirms on WhatsApp and comes to you.
+                Pick a therapy, see the price, send a short intake. We open WhatsApp so you can confirm with D-Dera and agree transport.
               </p>
             </div>
             <div className="lg:col-start-2 lg:row-span-2">
