@@ -8,8 +8,8 @@ Home-visit massage booking for **D-Dera's Essentials** (Lagos). Clients pick a s
 
 1. Client (phone or laptop) builds a session and sends the intake.
 2. The booking is stored on the Studio desk and emailed to Chidera (`chideraal29@gmail.com`) plus the second administrator inbox.
-3. Chidera sets transport, then **Accept & send quote**.
-4. The client quote page updates live. If they left an email, they get the service + transport amounts. WhatsApp still carries the same quote.
+3. On submit, WhatsApp opens to D-Dera (`0901 692 7305`) with the booking details pre-filled. **Transport is discussed on WhatsApp.**
+4. Chidera confirms in chat, sets transport in Studio, then **Accept & send quote** so the client status page shows the full amounts.
 5. The client chooses **pay complete visit** or **pay service + transport**. Studio is emailed that choice. Transfer is confirmed on WhatsApp.
 
 ## What ships
