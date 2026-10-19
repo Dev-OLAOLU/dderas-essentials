@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, MessageCircle } from "lucide-react";
+import { Check, ImagePlus, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 import { choosePayment, getPublicVisit } from "@/lib/intakes";
+import { attachReceiptFile } from "@/lib/files";
+import { fileToPending } from "@/lib/image";
 import {
   PAYMENT_CHOICES,
   STUDIO,
@@ -33,6 +35,8 @@ function VisitQuotePage() {
   const [visit, setVisit] = useState<VisitQuote | null | undefined>(undefined);
   const [picked, setPicked] = useState<PaymentChoice | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +126,30 @@ function VisitQuotePage() {
     }
   }
 
+  async function onReceiptPick(list: FileList | null) {
+    const file = list?.[0];
+    if (receiptInputRef.current) receiptInputRef.current.value = "";
+    if (!file || !k) return;
+    setUploading(true);
+    try {
+      const pending = await fileToPending(file, "receipt");
+      await attachReceiptFile({
+        data: {
+          reference: quote.reference,
+          token: k,
+          filename: pending.filename,
+          mime: "image/jpeg",
+          data: pending.data,
+        },
+      });
+      toast.success("Receipt uploaded — D-Dera can see it in Studio");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not upload receipt");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const due = picked
     ? amountDue(picked, {
         serviceFee: visit.serviceFee,
@@ -161,7 +189,7 @@ function VisitQuotePage() {
           {waiting
             ? "Confirm the visit on WhatsApp with D-Dera and agree the transport fee. When transport is set, you choose how to pay here — complete visit, or service + fare."
             : locked
-              ? "Your payment choice is with the studio. Finish the transfer on WhatsApp."
+              ? "Your payment choice is with the studio. Finish the transfer on WhatsApp, then upload your receipt here."
               : "Choose how you want to pay. D-Dera confirms the transfer on WhatsApp."}
         </p>
 
@@ -239,6 +267,31 @@ function VisitQuotePage() {
                 {paymentChoiceLabel(chosen)} · {naira(amountDue(chosen ?? "full", visit))}
               </div>
             )}
+
+            <section className="mt-4 rounded-xl border border-border bg-surface p-4">
+              <p className="text-sm font-medium">Payment receipt</p>
+              <p className="mt-1 text-sm text-muted">
+                After you transfer, upload a screenshot or photo of the receipt. It appears in Studio for D-Dera.
+              </p>
+              <input
+                ref={receiptInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/*"
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={(event) => void onReceiptPick(event.target.files)}
+              />
+              <Button
+                className="mt-3"
+                variant="outline"
+                disabled={uploading}
+                onClick={() => receiptInputRef.current?.click()}
+              >
+                <ImagePlus className="size-4" />
+                {uploading ? "Uploading…" : "Upload receipt"}
+              </Button>
+            </section>
           </div>
         )}
 
