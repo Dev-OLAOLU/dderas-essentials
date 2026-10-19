@@ -83,7 +83,7 @@ export function YouStep({
       </Field>
       <Field label="Areas of focus" error={errors.areasOfFocus}>
         <BodyMap
-          selected={draft.areasOfFocus}
+          value={draft.areasOfFocus}
           onChange={(areasOfFocus) => onChange({ areasOfFocus })}
         />
       </Field>
