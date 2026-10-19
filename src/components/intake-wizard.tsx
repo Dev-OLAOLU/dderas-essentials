@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PhotoSlots } from "@/components/photo-slots";
 import { BrandMark } from "@/components/mark";
+import { SessionStep, VisitStep, YouStep, ConfirmStep } from "@/components/intake-wizard-steps";
 import { submitIntake } from "@/lib/intakes";
 import { attachClientFile } from "@/lib/files";
 import { CLIENT_FILE_CAP, CLIENT_KINDS, type PendingFile } from "@/lib/image";
