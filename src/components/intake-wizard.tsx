@@ -1,26 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Check, Home, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { BodyMap } from "@/components/body-map";
-import { Field } from "@/components/field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { PhotoSlots } from "@/components/photo-slots";
 import { BrandMark } from "@/components/mark";
-import { SessionStep, VisitStep, YouStep, ConfirmStep } from "@/components/intake-wizard-steps";
+import { SessionStep } from "@/components/intake-wizard-steps";
+import { VisitStep } from "@/components/intake-visit-step";
+import { YouStep } from "@/components/intake-you-step";
+import { ConfirmStep } from "@/components/intake-confirm-step";
 import { submitIntake } from "@/lib/intakes";
 import { attachClientFile } from "@/lib/files";
-import { CLIENT_FILE_CAP, CLIENT_KINDS, type PendingFile } from "@/lib/image";
+import { type PendingFile } from "@/lib/image";
 import {
-  ALL_SERVICES,
-  ASMR_SERVICE,
-  CORE_SERVICES,
   EXTRAS,
-  PRESSURE_OPTIONS,
   STUDIO,
-  TIME_SLOTS,
   bookingWhatsAppMessage,
   durationsFor,
   emptyDraft,
@@ -34,7 +27,7 @@ import {
   serviceFee,
   type IntakeDraft,
 } from "@/lib/intake-schema";
-import { cn, formatDisplayDate, formatTimeLabel, todayIso, whatsappHref } from "@/lib/utils";
+import { todayIso, whatsappHref } from "@/lib/utils";
 
 const DRAFT_KEY = "ddera-intake-draft-v1";
 const STEPS = [
