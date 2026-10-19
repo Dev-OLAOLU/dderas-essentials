@@ -192,6 +192,42 @@ export function statusLabel(id: string): string {
   return STATUSES.find((item) => item.id === id)?.label ?? id;
 }
 
+export function bookingWhatsAppMessage(payload: {
+  reference: string;
+  fullName: string;
+  phone: string;
+  serviceArea: string;
+  addressExact: string;
+  preferredDate: string;
+  preferredTime: string;
+  serviceType: string;
+  durationMinutes: number;
+  extras: string[];
+  serviceFee: number;
+  extrasFee: number;
+}): string {
+  const extras =
+    payload.extras.length > 0
+      ? payload.extras.map(extraLabel).join(", ")
+      : "None";
+  const session = payload.serviceFee + payload.extrasFee;
+  const lines = [
+    `Hi D-Dera — new booking ${payload.reference}`,
+    "",
+    `Name: ${payload.fullName}`,
+    `Phone: ${payload.phone}`,
+    `Area: ${payload.serviceArea}`,
+    `Address: ${payload.addressExact}`,
+    `When: ${payload.preferredDate} · ${payload.preferredTime}`,
+    `Service: ${serviceLabel(payload.serviceType)} · ${payload.durationMinutes} mins`,
+    `Extras: ${extras}`,
+    `Session total: ${naira(session)} (transport TBD)`,
+    "",
+    "Please confirm and share the transport fee.",
+  ];
+  return lines.join("\n");
+}
+
 export const PAYMENT_CHOICES = [
   {
     id: "full",
