@@ -6,12 +6,14 @@ export const STUDIO_FILE_CAP = 8;
 export const CLIENT_KINDS = [
   { id: "entrance", label: "Entrance / gate" },
   { id: "deposit", label: "Deposit screenshot" },
+  { id: "receipt", label: "Payment receipt" },
 ] as const;
 
 export const STUDIO_KINDS = [
   { id: "consent", label: "Signed consent" },
   { id: "photo", label: "Session photo" },
   { id: "deposit", label: "Deposit screenshot" },
+  { id: "receipt", label: "Payment receipt" },
   { id: "other", label: "Other" },
 ] as const;
 
