@@ -132,7 +132,9 @@ function VisitQuotePage() {
 
   const waText = chosen
     ? `Hi D-Dera, this is ${visit.firstName}. I choose to ${paymentChoiceLabel(chosen).toLowerCase()} for ${visit.reference} — ${naira(amountDue(chosen, visit))}.`
-    : `Hi D-Dera, this is ${visit.firstName}. Checking my quote for ${visit.reference}.`;
+    : waiting
+      ? `Hi D-Dera, this is ${visit.firstName}. I just sent booking ${visit.reference} from the site. Please confirm and share the transport fee.`
+      : `Hi D-Dera, this is ${visit.firstName}. Checking my quote for ${visit.reference}.`;
 
   return (
     <main className="min-h-screen bg-bg px-5 py-10 text-ink sm:px-8">
@@ -147,7 +149,8 @@ function VisitQuotePage() {
 
         {justIn ? (
           <p className="mt-8 rounded-xl bg-mint px-4 py-3 text-sm text-ink">
-            Request received. D-Dera has it on the desk. Keep this page — your quote appears here.
+            Request received. WhatsApp should have opened with your booking — confirm with D-Dera
+            there and agree transport. Keep this page for status and payment once transport is set.
           </p>
         ) : null}
 
@@ -156,7 +159,7 @@ function VisitQuotePage() {
         </h1>
         <p className="mt-3 text-muted">
           {waiting
-            ? "D-Dera has your request. She’ll add transport, then you choose how to pay — complete visit, or service + fare."
+            ? "Confirm the visit on WhatsApp with D-Dera and agree the transport fee. When transport is set, you choose how to pay here — complete visit, or service + fare."
             : locked
               ? "Your payment choice is with the studio. Finish the transfer on WhatsApp."
               : "Choose how you want to pay. D-Dera confirms the transfer on WhatsApp."}
@@ -192,7 +195,7 @@ function VisitQuotePage() {
         {waiting ? (
           <p className="mt-6 flex items-center gap-2 text-sm text-muted">
             <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
-            Waiting for D-Dera to set transport. This page updates on its own.
+            Discuss transport on WhatsApp. This page updates when D-Dera sets the fee.
           </p>
         ) : (
           <div className="mt-6 grid gap-3">
@@ -240,9 +243,9 @@ function VisitQuotePage() {
         )}
 
         <div className="mt-8 flex flex-col gap-3">
-          <Button asChild variant={locked ? "secondary" : "outline"}>
+          <Button asChild variant={waiting || locked ? "secondary" : "outline"}>
             <a href={whatsappHref(STUDIO.whatsappE164, waText)}>
-              <MessageCircle /> WhatsApp D-Dera
+              <MessageCircle /> {waiting ? "Continue on WhatsApp" : "WhatsApp D-Dera"}
             </a>
           </Button>
           <Button asChild variant="ghost">
