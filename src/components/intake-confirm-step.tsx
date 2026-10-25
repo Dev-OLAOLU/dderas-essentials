@@ -68,7 +68,7 @@ export function ConfirmStep({
             <dt className="text-muted">Session total</dt>
             <dd className="font-medium tabular-nums">{naira(total)}</dd>
           </div>
-          <p className="text-xs text-muted">Transport is agreed on WhatsApp after you send this form.</p>
+          <p className="text-xs text-muted">Transport is agreed by email after you send this form.</p>
         </dl>
       </section>
 
@@ -90,7 +90,7 @@ export function ConfirmStep({
           onChange={(event) => onChange({ consentPolicy: event.target.checked })}
         />
         <span>
-          I confirm the details above are correct and agree to D-Dera&apos;s home-visit booking policy.
+          I confirm the details above are correct and agree to D-Dera's home-visit booking policy.
           {errors.consentPolicy ? (
             <span className="mt-1 block text-danger">{errors.consentPolicy}</span>
           ) : null}
