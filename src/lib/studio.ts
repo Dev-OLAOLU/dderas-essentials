@@ -282,8 +282,7 @@ export async function sendBookingNotification(payload: {
   const autoresponse = clientEmail
     ? [
         `Hi ${firstName}, D-Dera's Essentials has your request ${payload.reference}.`,
-        `Continue on WhatsApp to confirm and agree transport.`,
-        `WhatsApp D-Dera: https://wa.me/${STUDIO.whatsappE164}`,
+        `D-Dera has your request and will reply by email to confirm and agree transport.`,
         quote ? `Status page: ${quote}` : "Use the status page from your booking confirmation.",
       ].join("\n")
     : undefined;
@@ -310,7 +309,7 @@ export async function sendBookingNotification(payload: {
       allergies: payload.allergies || "None noted",
       pressure: payload.pressure,
       quote_page: quote || "In Studio",
-      next_step: "Client was sent to WhatsApp. Confirm there, agree transport, then set fee in Studio and Accept & send quote.",
+      next_step: "Booking emailed to D-Dera. Confirm by email, agree transport, then set fee in Studio and Accept & send quote.",
     },
     autoresponse,
   );
