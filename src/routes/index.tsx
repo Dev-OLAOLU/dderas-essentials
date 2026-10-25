@@ -26,8 +26,8 @@ const STEPS = [
   },
   {
     n: "3",
-    title: "Confirm on WhatsApp",
-    body: "Your form opens a chat with D-Dera. Transport is agreed there.",
+    title: "Confirm by email",
+    body: "Your form is emailed to D-Dera. Transport is agreed by email.",
   },
   {
     n: "4",
@@ -54,7 +54,7 @@ function HomePage() {
                 at your home.
               </h1>
               <p className="mt-4 max-w-md text-lg text-muted">
-                Pick a therapy, see the price, send a short intake. We open WhatsApp so you can confirm with D-Dera and agree transport.
+                Pick a therapy, see the price, send a short intake. D-Dera gets it by email so you can confirm and agree transport.
               </p>
             </div>
             <div className="lg:col-start-2 lg:row-span-2">
