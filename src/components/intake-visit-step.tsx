@@ -87,7 +87,7 @@ export function VisitStep({
         <PhotoSlots kinds={CLIENT_KINDS} value={photos} onChange={onPhotos} cap={CLIENT_FILE_CAP} />
       </div>
       <p className="text-sm text-muted">
-        Transport is agreed with D-Dera on WhatsApp after you send this form.
+        Transport is agreed with D-Dera by email after you send this form.
       </p>
     </div>
   );
