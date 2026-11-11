@@ -46,11 +46,6 @@ function Login() {
   if (user) return <Navigate to="/studio" />;
 
   const seatsOpen = gate?.open ?? false;
-  // Google/X buttons only work with a properly registered OAuth client.
-  // On production we rely on email/password (the preview client rejects non-sandbox redirects).
-  const showFederated =
-    typeof window !== "undefined" &&
-    window.location.hostname.endsWith(".grok-sandbox.com");
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -89,28 +84,24 @@ function Login() {
           </span>
         </Link>
         <h1 className="font-display text-3xl tracking-tight">Sign in</h1>
-        <p className="mt-2 text-sm text-muted">Use your studio email and password.</p>
+        <p className="mt-2 text-sm text-muted">Continue with Google or use your studio email and password.</p>
 
         {authEnabled ? (
           <div className="mt-8 grid gap-3">
-            {showFederated
-              ? GROK_PROVIDERS.map((provider) => (
-                  <Button
-                    key={provider.providerId}
-                    type="button"
-                    variant="outline"
-                    onClick={() => void signIn(provider.providerId, { callbackURL: "/studio" })}
-                  >
-                    Continue with {provider.label}
-                  </Button>
-                ))
-              : null}
-            {showFederated ? (
-              <div className="relative my-2 text-center text-xs uppercase tracking-[0.16em] text-subtle">
-                <span className="relative z-10 bg-bg px-3">or email</span>
-                <span className="absolute inset-x-0 top-1/2 h-px bg-border" />
-              </div>
-            ) : null}
+            {GROK_PROVIDERS.map((provider) => (
+              <Button
+                key={provider.providerId}
+                type="button"
+                variant="outline"
+                onClick={() => void signIn(provider.providerId, { callbackURL: "/studio" })}
+              >
+                Continue with {provider.label}
+              </Button>
+            ))}
+            <div className="relative my-2 text-center text-xs uppercase tracking-[0.16em] text-subtle">
+              <span className="relative z-10 bg-bg px-3">or email</span>
+              <span className="absolute inset-x-0 top-1/2 h-px bg-border" />
+            </div>
             <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
               {mode === "up" && seatsOpen ? (
                 <Field label="Your name">
