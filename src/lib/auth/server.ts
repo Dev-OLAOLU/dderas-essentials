@@ -75,11 +75,14 @@ const env = (key: string): string | undefined => {
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
 
 // Broker federation creds: the deployer injects a per-app client when deployed;
-// otherwise fall back to the shared live-preview client, which the broker accepts
-// for any `*.grok-sandbox.com` callback (see `./preview`).
+// otherwise fall back to the shared live-preview client ONLY when there is no
+// explicit production base URL. The preview client only accepts redirects to
+// `*.grok-sandbox.com`, so using it on a real domain produces "Invalid redirect URI".
 const grokIssuer = env("GROK_AUTH_ISSUER") ?? GROK_ISSUER_DEFAULT;
-const grokClientId = env("GROK_AUTH_CLIENT_ID") ?? PREVIEW_CLIENT_ID;
-const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET;
+const explicitBaseURL = env("BETTER_AUTH_URL");
+const usePreviewClient = !explicitBaseURL;
+const grokClientId = env("GROK_AUTH_CLIENT_ID") ?? (usePreviewClient ? PREVIEW_CLIENT_ID : undefined);
+const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? (usePreviewClient ? PREVIEW_CLIENT_SECRET : undefined);
 
 /** True when federated sign-in is active (real auth is enforced). */
 export const authConfigured =
@@ -91,7 +94,6 @@ export const authConfigured =
 // it derives the origin per-request from the (proxied) host, validated against the
 // preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
 // the broker's preview client accepts.
-const explicitBaseURL = env("BETTER_AUTH_URL");
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
